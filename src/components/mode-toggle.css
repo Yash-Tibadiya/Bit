@@ -22,6 +22,7 @@
   transition: background-color 0.4s ease;
   z-index: 0;
   overflow: hidden;
+  /* border: 2px solid var(--edge); */
 }
 
 .sun-moon {
@@ -38,7 +39,7 @@
 }
 
 #input:checked + .slider {
-  background-color: black;
+  background-color: rgb(35, 33, 33);
 }
 
 #input:focus + .slider {
@@ -184,7 +185,7 @@
 }
 
 #cloud-3 {
-  left: 18px;
+  left: 19px;
   top: 25px;
   width: 30px;
 }
