@@ -1,12 +1,24 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import "./mode-toggle.css";
+
+// Type declaration for View Transition API
+declare global {
+  interface Document {
+    startViewTransition?: (callback: () => void | Promise<void>) => {
+      ready: Promise<void>;
+      finished: Promise<void>;
+    };
+  }
+}
 
 export function ModeToggle() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const switchRef = useRef<HTMLLabelElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -14,9 +26,45 @@ export function ModeToggle() {
 
   const isDark = theme === "dark";
 
-  const handleToggle = () => {
-    setTheme(isDark ? "light" : "dark");
-  };
+  const handleToggle = useCallback(async () => {
+    const newTheme = isDark ? "light" : "dark";
+
+    // Check if View Transition API is supported
+    if (!document.startViewTransition || !switchRef.current) {
+      setTheme(newTheme);
+      return;
+    }
+
+    // Start view transition with circular reveal from the switch
+    await document.startViewTransition(() => {
+      flushSync(() => {
+        setTheme(newTheme);
+      });
+    }).ready;
+
+    const { top, left, width, height } =
+      switchRef.current.getBoundingClientRect();
+    const x = left + width / 2;
+    const y = top + height / 2;
+    const maxRadius = Math.hypot(
+      Math.max(left, window.innerWidth - left),
+      Math.max(top, window.innerHeight - top)
+    );
+
+    document.documentElement.animate(
+      {
+        clipPath: [
+          `circle(0px at ${x}px ${y}px)`,
+          `circle(${maxRadius}px at ${x}px ${y}px)`,
+        ],
+      },
+      {
+        duration: 500,
+        easing: "ease-in-out",
+        pseudoElement: "::view-transition-new(root)",
+      }
+    );
+  }, [isDark, setTheme]);
 
   if (!mounted) {
     return (
@@ -27,7 +75,7 @@ export function ModeToggle() {
   }
 
   return (
-    <label className="switch">
+    <label className="switch" ref={switchRef}>
       <input
         id="input"
         type="checkbox"
